@@ -37,7 +37,6 @@ script_response = {
 text = script_response['choices'][0]['text']
 print(text)
 
-
 import ibm_watson
 from ibm_watson import TextToSpeechV1
 from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
@@ -58,22 +57,15 @@ from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
 #         voice='en-AU_JackExpressive',
 #     ).get_result()
 #     audio_file.write(response.content)
-print('---------')
+# print('---------')
 
 
 
-noun_response = openai.Completion.create(model="text-davinci-003",
-                                         prompt=f'Identify all nouns in the following text: "{text}". Repeat nouns in the output each time the noun appears in the text. Seperate nouns in a list with a comma.',
-                                         temperature=0, max_tokens=200)
-n = noun_response['choices'][0]['text']
-print(n)
-
-# sentences = text.split('.')
-# # print(sentences)
-#
-# nouns = []
-# for s in sentences:
-#     noun_response = openai.Completion.create(model="text-davinci-003", prompt=f'Identify all nouns in the following sentence: "{s}". Structure the output as a list of comma separated nouns.', temperature=0, max_tokens=200)
-#     n = noun_response['choices'][0]['text']
-#     print(n)
+# noun_response = openai.Completion.create(model="text-davinci-003",
+#                                          prompt=f'Identify all nouns in the following text: "{text}". Repeat nouns in the output each time the noun appears in the text. Seperate nouns in a list with a comma.',
+#                                          temperature=0, max_tokens=200)
+# nouns = noun_response['choices'][0]['text'].replace('\n', '').split(', ')
 # print(nouns)
+
+
+nouns = ['Everyone', 'Donkey Kong', 'Jumpman', 'carpenter', 'plumber', 'Super Mario Bros', 'Mr. Video', 'Japan', 'Mario', 'games', 'movies', 'TV shows', 'cartoons', 'Super Mario']
