@@ -8,4 +8,7 @@ downloads
 
 script.txt
 
-__venv__
+venv
+*.png
+
+*.ttf
