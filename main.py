@@ -69,3 +69,12 @@ from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
 
 
 nouns = ['Everyone', 'Donkey Kong', 'Jumpman', 'carpenter', 'plumber', 'Super Mario Bros', 'Mr. Video', 'Japan', 'Mario', 'games', 'movies', 'TV shows', 'cartoons', 'Super Mario']
+
+
+from bing_image_downloader import downloader
+for n in nouns:
+
+  downloader.download(f'{n}', limit=3, output_dir='downloads', adult_filter_off=False, force_replace=False, timeout=60)
+
+
+# urls = GoogleImageScraper.urls("mario bros", 5)

@@ -1,3 +1,6 @@
 openai
 
 ibm-watson
+
+GoogleImageScraper
+pillow
