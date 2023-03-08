@@ -6,3 +6,4 @@ GoogleImageScraper
 pillow
 
 requests
+
