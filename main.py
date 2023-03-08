@@ -3,17 +3,17 @@ import openai
 from dotenv import dotenv_values
 env = dict(dotenv_values(".env"))
 
-# character_name = input("Character Name: ")
-# character_name = "Super Mario" if character_name == '' else character_name
+character_name = input("Character Name: ")
+character_name = "Super Mario" if character_name == '' else character_name
+
+openai.api_key = env["OPENAI_API_KEY"]
 #
-# openai.api_key = env["OPENAI_API_KEY"]
 #
-#
-# response = openai.Completion.create(model="text-davinci-003", prompt=f"write an energetic script for a tik tok video about the strange history of {character_name}", temperature=0.2, max_tokens=200)
-# print(response)
+# script_response = openai.Completion.create(model="text-davinci-003", prompt=f"write an energetic script for a tik tok video about the strange history of {character_name}", temperature=0.2, max_tokens=200)
+# print(script_response)
 
 
-response = {
+script_response = {
   "choices": [
     {
       "finish_reason": "stop",
@@ -34,7 +34,7 @@ response = {
 }
 
 
-text = response['choices'][0]['text']
+text = script_response['choices'][0]['text']
 print(text)
 
 
@@ -42,20 +42,38 @@ import ibm_watson
 from ibm_watson import TextToSpeechV1
 from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
 
-# Set up the Text to Speech service
-authenticator = IAMAuthenticator(env['WATSON_API_KEY'])
-text_to_speech = TextToSpeechV1(
-    authenticator=authenticator
-)
+# # Set up the Text to Speech service
+# authenticator = IAMAuthenticator(env['WATSON_API_KEY'])
+# text_to_speech = TextToSpeechV1(
+#     authenticator=authenticator
+# )
+#
+# text_to_speech.set_service_url(env['WATSON_TTS_URL'])
+#
+# # Generate speech from text
+# with open('output.mp3', 'wb') as audio_file:
+#     response = text_to_speech.synthesize(
+#         text=text,
+#         accept='audio/mp3',
+#         voice='en-AU_JackExpressive',
+#     ).get_result()
+#     audio_file.write(response.content)
+print('---------')
 
-text_to_speech.set_service_url(env['WATSON_TTS_URL'])
 
-# Generate speech from text
-with open('output.mp3', 'wb') as audio_file:
-    response = text_to_speech.synthesize(
-        text=text,
-        accept='audio/mp3',
-        voice='en-AU_JackExpressive',
-    ).get_result()
-    audio_file.write(response.content)
 
+noun_response = openai.Completion.create(model="text-davinci-003",
+                                         prompt=f'Identify all nouns in the following text: "{text}". Repeat nouns in the output each time the noun appears in the text. Seperate nouns in a list with a comma.',
+                                         temperature=0, max_tokens=200)
+n = noun_response['choices'][0]['text']
+print(n)
+
+# sentences = text.split('.')
+# # print(sentences)
+#
+# nouns = []
+# for s in sentences:
+#     noun_response = openai.Completion.create(model="text-davinci-003", prompt=f'Identify all nouns in the following sentence: "{s}". Structure the output as a list of comma separated nouns.', temperature=0, max_tokens=200)
+#     n = noun_response['choices'][0]['text']
+#     print(n)
+# print(nouns)
