@@ -4,3 +4,5 @@ ibm-watson
 
 GoogleImageScraper
 pillow
+
+requests
