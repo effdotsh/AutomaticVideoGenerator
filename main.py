@@ -2,7 +2,10 @@ import openai
 import os
 from dotenv import dotenv_values
 import requests
+import os
 
+if not os.path.exists("captions"):
+    os.mkdir("captions")
 
 def align(audio, text) -> dict:
     # while not os.path.isfile(audio):
@@ -113,34 +116,56 @@ aligned = {'transcript': "\n\nHey everyone! \n\nToday I'm here to talk about the
 
 import spacy
 from PIL import Image, ImageDraw, ImageFont
+import textwrap
+
+caption_counter = 0
 
 # load core english library
 nlp = spacy.load("en_core_web_sm")
 doc = nlp(text.replace('/n', ''))
+text_size = 100
+caption_width = 18
+char_height = text_size+20
 for e, caption_text in enumerate(doc.sents):
     caption_text = str(caption_text).split(' ')
     combo = ''
+
+    dummy_text_box = textwrap.wrap(" ".join(caption_text), width=caption_width)
+
     for i in range(len(caption_text)):
         combo += caption_text[i] + ' '
-        print(combo, i)
 
-        font_size = 10
-        font_color = (0, 0, 0)
-        font = ImageFont.truetype('KOMIKAX_.ttf', font_size)
+        font = ImageFont.truetype('KOMIKAX_.ttf', size=text_size)
 
-        # Set the text and image dimensions
-        image_width = 500
-        image_height = 100
+        img = Image.new('RGB', (1080, 1920), color=(0, 255, 0))
 
-        # Create a new image with a white background
-        image = Image.new('RGB', (image_width, image_height), (0, 0, 255))
+        # Create a drawing context
+        draw = ImageDraw.Draw(img)
 
-        # Add the text to the image
-        draw = ImageDraw.Draw(image)
-        text_width, text_height = draw.textsize(combo, font=font)
-        x = 0
-        y = (image_height - text_height) / 2
-        draw.text((x, y), combo, font=font, fill=font_color, align="left", stroke_fill=(255, 255, 255), stroke_width=3)
+        # Specify the font to use
+
+        # Set the text to be drawn
+
+        # Set the desired width of the text box
+        textbox_width = 300
+
+        # Set the position of the text box
+        x = 50
+        y = 1920-len(dummy_text_box)*char_height-100
+
+        lines = textwrap.wrap(combo, width=caption_width)
+        textbox_height = len(lines) * font.getbbox(" ")[1] + 20
+
+
+
+        # Draw the text box
+
+        # Draw the text inside the text box
+        current_y = y + 10
+        for line in lines:
+            draw.text((x + 10, current_y), line, font=font, fill='black', stroke_fill=(255, 255, 255), stroke_width=8)
+            current_y += font.getbbox(" ")[1]
 
         # Save the image
-        image.save(f'caption_{e}_{i}.png')
+        img.save(f'captions/caption_{caption_counter}.png')
+        caption_counter += 1
