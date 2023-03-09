@@ -124,9 +124,28 @@ caption_counter = 0
 nlp = spacy.load("en_core_web_sm")
 doc = nlp(text.replace('/n', ''))
 text_size = 100
-caption_width = 18
+caption_width = 16
 char_height = text_size+20
-for e, caption_text in enumerate(doc.sents):
+
+captions = []
+for e, sent in enumerate(doc.sents):
+    sent = str(sent).replace('\n','')
+    s = sent.split(' ')
+    print('---')
+    print(sent)
+    print(s)
+    if len(s) < 7:
+        captions += [sent]
+    else:
+        c = 0
+        while True:
+            c+=6
+            captions += [" ".join(s[c-6:min(c, len(sent))])]
+            if c > len(sent):
+                break
+captions = [a for a in captions if a != '']
+print(captions)
+for e, caption_text in enumerate(captions):
     caption_text = str(caption_text).split(' ')
     combo = ''
 
@@ -151,12 +170,10 @@ for e, caption_text in enumerate(doc.sents):
 
         # Set the position of the text box
         x = 50
-        y = 1920-len(dummy_text_box)*char_height-100
+        y = 1920-len(dummy_text_box)*char_height-200
 
         lines = textwrap.wrap(combo, width=caption_width)
         textbox_height = len(lines) * font.getbbox(" ")[1] + 20
-
-
 
         # Draw the text box
 
