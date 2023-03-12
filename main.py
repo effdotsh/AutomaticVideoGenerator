@@ -90,24 +90,52 @@ from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
 # print('---------')
 
 
-# noun_response = openai.Completion.create(model="text-davinci-003",
-#                                          prompt=f'Identify all nouns in the following text: "{text}". Repeat nouns in the output each time the noun appears in the text. Separate nouns in a list with a comma.',
-#                                          temperature=0, max_tokens=200)
-# nouns = noun_response['choices'][0]['text'].replace('\n', '').split(', ')
-# print(nouns)
+import spacy
+# load the English language model
+nlp = spacy.load("en_core_web_sm")
+# define a sentence with a multi-word proper noun
+# process the sentence with spaCy
+doc = nlp(text)
+# identify named entities and combine multi-word entities
+p_nouns = doc.ents
+i_nouns = [token for token in doc if token.pos_ in ["NOUN"]]
 
+pc = 0
+ic = 0
+nouns = []
+while pc < len(p_nouns) and ic < len(i_nouns):
+    if p_nouns[pc].start < i_nouns[ic].i:
 
-nouns = ['Everyone', 'Donkey Kong', 'Jumpman', 'carpenter', 'plumber', 'Super Mario Bros', 'Mr. Video', 'Japan',
-         'Mario', 'games', 'movies', 'TV shows', 'cartoons', 'Super Mario']
+        text = p_nouns[pc].text
+        s = p_nouns[pc].start
+        while s > 0: # exception for Mr./Mrs./Dr. etc
+            if doc[s-1].pos_ == 'PROPN':
+                text = doc[s-1].text + ' ' + text
+                s-=1
+            else:
+                break
+
+        nouns.append(text)
+        pc += 1
+    else:
+        nouns.append(i_nouns[ic].text)
+        ic+=1
+while pc < len(p_nouns):
+    nouns.append(p_nouns[pc].text)
+    pc += 1
+while ic < len(i_nouns):
+    nouns.append(i_nouns[ic].text)
+    ic += 1
+print("NOUNS: ", nouns)
 
 
 # Download images from duckduckgo
 
-# from ImageDownloader import download
-#
-# for n in nouns:
-#     print("Searching for:", n)
-#     download(f'{n}', limit=1)
+from ImageDownloader import download
+
+for n in nouns:
+    print("Searching for:", n)
+    download(f'{n}', limit=1)
 
 single_nouns = [a.split(' ')[0] for a in nouns]
 
