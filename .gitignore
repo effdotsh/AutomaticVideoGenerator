@@ -1,18 +1,17 @@
 .env
 .idea
 .DS_Store
-*.wav
-*.mp3
 __pycache__
-downloads
+venv
 
 script.txt
-
-venv
-*.png
-
-*.ttf
-
 captions
+frames
+downloads
+
+*.png
+*.ttf
 *.mp4
 *.mov
+*.wav
+*.mp3

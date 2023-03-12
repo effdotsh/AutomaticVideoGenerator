@@ -4,7 +4,8 @@ python-dotenv
 
 ibm-watson
 
-GoogleImageScraper
+duckduckgo-search 2.8.5
+
 pillow
 
 requests

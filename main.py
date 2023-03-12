@@ -91,7 +91,7 @@ from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
 
 
 # noun_response = openai.Completion.create(model="text-davinci-003",
-#                                          prompt=f'Identify all nouns in the following text: "{text}". Repeat nouns in the output each time the noun appears in the text. Seperate nouns in a list with a comma.',
+#                                          prompt=f'Identify all nouns in the following text: "{text}". Repeat nouns in the output each time the noun appears in the text. Separate nouns in a list with a comma.',
 #                                          temperature=0, max_tokens=200)
 # nouns = noun_response['choices'][0]['text'].replace('\n', '').split(', ')
 # print(nouns)
@@ -103,12 +103,13 @@ nouns = ['Everyone', 'Donkey Kong', 'Jumpman', 'carpenter', 'plumber', 'Super Ma
 
 # Download images from bing
 
-# from bing_image_downloader import downloader
-#
-# for n in nouns:
-#     downloader.download(f'{n}', limit=3, output_dir='downloads', adult_filter_off=False, force_replace=False,
-#                         timeout=60)
+from ImageDownloader import download
 
+for n in nouns:
+    print("Searching for:", n)
+    download(f'{n}', limit=1)
+
+single_nouns = [a.split(' ')[0] for a in nouns]
 
 
 # aligned = align('output.mp3', 'script.txt')
@@ -161,6 +162,8 @@ p_bar.n = 0
 p_bar.refresh()
 
 print(captions)
+
+slide_picture = Image.new('RGB', (500, 500), color=(0, 0, 200))
 for e, caption_text in enumerate(captions):
     caption_text = str(caption_text).split(' ')
     combo = ''
@@ -174,6 +177,17 @@ for e, caption_text in enumerate(captions):
         font = ImageFont.truetype('KOMIKAX_.ttf', size=text_size)
 
         img = Image.new('RGB', (1080, 1920), color=(0, 255, 0))
+
+        print(caption_text[i], single_nouns[0])
+        if single_nouns[0].lower() in caption_text[i].lower():
+            n = nouns.pop(0)
+            single_nouns.pop(0)
+
+            files = os.listdir(f'downloads/{n}/')
+            print(files)
+            slide_picture = Image.open(f'downloads/{n}/{files[-1]}')
+
+        img.paste(slide_picture)
 
         # Create a drawing context
         draw = ImageDraw.Draw(img)
