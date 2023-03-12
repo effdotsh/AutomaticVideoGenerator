@@ -101,13 +101,13 @@ nouns = ['Everyone', 'Donkey Kong', 'Jumpman', 'carpenter', 'plumber', 'Super Ma
          'Mario', 'games', 'movies', 'TV shows', 'cartoons', 'Super Mario']
 
 
-# Download images from bing
+# Download images from duckduckgo
 
-from ImageDownloader import download
-
-for n in nouns:
-    print("Searching for:", n)
-    download(f'{n}', limit=1)
+# from ImageDownloader import download
+#
+# for n in nouns:
+#     print("Searching for:", n)
+#     download(f'{n}', limit=1)
 
 single_nouns = [a.split(' ')[0] for a in nouns]
 
