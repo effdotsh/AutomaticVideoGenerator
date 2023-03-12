@@ -168,8 +168,8 @@ for e, caption_text in enumerate(captions):
     dummy_text_box = textwrap.wrap(" ".join(caption_text), width=caption_width)
 
     for i in range(len(caption_text)):
-        combo += caption_text[i] + ' '
-        # combo = " ".join(caption_text)
+        # combo += caption_text[i] + ' '
+        combo = " ".join(caption_text)
 
         font = ImageFont.truetype('KOMIKAX_.ttf', size=text_size)
 
@@ -198,6 +198,8 @@ for e, caption_text in enumerate(captions):
         # Draw the text inside the text box
         current_y = y + 10
         for line in lines:
+            x = 1080/2 - font.getbbox(" ")[1]*(len(line)-1)/4
+            print(x, len(line))
             draw.text((x, current_y), line, font=font, fill='black', stroke_fill=(255, 255, 255), stroke_width=8)
             current_y += font.getbbox(" ")[1]
 
