@@ -200,7 +200,7 @@ for e, caption_text in enumerate(captions):
         for line in lines:
             x = 1080/2 - font.getbbox(" ")[1]*(len(line)-1)/4
             print(x, len(line))
-            draw.text((x, current_y), line, font=font, fill='black', stroke_fill=(255, 255, 255), stroke_width=8)
+            draw.text((x, current_y), line, font=font, fill='white', stroke_fill=(0, 0, 0), stroke_width=8)
             current_y += font.getbbox(" ")[1]
 
         end = aligned['words'][word_counter]['end']

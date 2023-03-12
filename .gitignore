@@ -14,3 +14,5 @@ venv
 *.ttf
 
 captions
+*.mp4
+*.mov
