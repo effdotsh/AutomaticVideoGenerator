@@ -1,3 +1,6 @@
+import random
+random.seed(38724)
+
 import openai
 import os
 from dotenv import dotenv_values
@@ -8,8 +11,7 @@ from tqdm import tqdm
 
 if not os.path.exists("captions"):
     os.mkdir("captions")
-if not os.path.exists("frames"):
-    os.mkdir("frames")
+
 def align(audio, text) -> dict:
     # while not os.path.isfile(audio):
     #     pass
@@ -106,36 +108,44 @@ nouns = []
 while pc < len(p_nouns) and ic < len(i_nouns):
     if p_nouns[pc].start < i_nouns[ic].i:
 
-        text = p_nouns[pc].text
+        t = p_nouns[pc].text
         s = p_nouns[pc].start
         while s > 0: # exception for Mr./Mrs./Dr. etc
             if doc[s-1].pos_ == 'PROPN':
-                text = doc[s-1].text + ' ' + text
+                t = doc[s-1].text + ' ' + t
                 s-=1
             else:
                 break
 
-        nouns.append(text)
+        nouns.append(t)
         pc += 1
     else:
         nouns.append(i_nouns[ic].text)
         ic+=1
 while pc < len(p_nouns):
-    nouns.append(p_nouns[pc].text)
+    t = p_nouns[pc].text
+    s = p_nouns[pc].start
+    while s > 0:  # exception for Mr./Mrs./Dr. etc
+        if doc[s - 1].pos_ == 'PROPN':
+            t = doc[s - 1].text + ' ' + t
+            s -= 1
+        else:
+            break
+
+    nouns.append(t)
     pc += 1
 while ic < len(i_nouns):
     nouns.append(i_nouns[ic].text)
     ic += 1
 print("NOUNS: ", nouns)
 
-
 # Download images from duckduckgo
-
+#
 from ImageDownloader import download
 
 for n in nouns:
     print("Searching for:", n)
-    download(f'{n}', limit=1)
+    download(f'{n}', limit=10)
 
 single_nouns = [a.split(' ')[0] for a in nouns]
 
@@ -154,17 +164,16 @@ from PIL import Image, ImageDraw, ImageFont
 import textwrap
 
 caption_counter = 0
-
 # load core english library
 nlp = spacy.load("en_core_web_sm")
-doc = nlp(text.replace('/n', ''))
+doc2 = nlp(text.replace('/n', ''))
 text_size = 100
 caption_width = 16
 char_height = text_size+20
 
 captions = []
 size = 3
-for e, sent in enumerate(doc.sents):
+for e, sent in enumerate(doc2.sents):
     sent = str(sent).replace('\n','')
     s = sent.split(' ')
     print('---')
@@ -184,12 +193,12 @@ captions = [" ".join(str(a).split()).strip() for a in captions if a != '']
 frame_counter = 0
 word_counter = 0
 
+print("CAPTIONS: ", captions)
 
 p_bar = tqdm(range(int(aligned['words'][-1]['end']*100)))
 p_bar.n = 0
 p_bar.refresh()
 
-print(captions)
 
 slide_picture = Image.new('RGB', (500, 500), color=(0, 0, 200))
 for e, caption_text in enumerate(captions):
@@ -206,14 +215,13 @@ for e, caption_text in enumerate(captions):
 
         img = Image.new('RGB', (1080, 1920), color=(0, 255, 0))
 
-        print(caption_text[i], single_nouns[0])
-        if single_nouns[0].lower() in caption_text[i].lower():
+        if len(single_nouns)>0 and single_nouns[0].lower() in caption_text[i].lower():
             n = nouns.pop(0)
             single_nouns.pop(0)
 
             files = os.listdir(f'downloads/{n}/')
-            print(files)
-            slide_picture = Image.open(f'downloads/{n}/{files[-1]}')
+            file = random.choice(files)
+            slide_picture = Image.open(f'downloads/{n}/{file}')
 
         img.paste(slide_picture)
 
@@ -241,7 +249,6 @@ for e, caption_text in enumerate(captions):
         current_y = y + 10
         for line in lines:
             x = 1080/2 - font.getbbox(" ")[1]*(len(line)-1)/4
-            print(x, len(line))
             draw.text((x, current_y), line, font=font, fill='white', stroke_fill=(0, 0, 0), stroke_width=8)
             current_y += font.getbbox(" ")[1]
 
