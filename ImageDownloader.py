@@ -17,7 +17,7 @@ def download(query: str, downloads_folder: str = "downloads", limit: int = 3, de
         try:
             img = requests.get(src)
             os.makedirs(f"{downloads_folder}/{query}/", exist_ok=True)
-            BYTE_MINIMUM = 30_000
+            BYTE_MINIMUM = 50_000
             if len(img.content) > BYTE_MINIMUM:
                 with open(path, "wb") as f:
                     f.write(img.content)

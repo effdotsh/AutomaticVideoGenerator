@@ -141,11 +141,11 @@ print("NOUNS: ", nouns)
 
 # Download images from duckduckgo
 #
-from ImageDownloader import download
-
-for n in nouns:
-    print("Searching for:", n)
-    download(f'{n}', limit=10)
+# from ImageDownloader import download
+#
+# for n in nouns:
+#     print("Searching for:", n)
+#     download(f'{n}', limit=10)
 
 single_nouns = [a.split(' ')[0] for a in nouns]
 
@@ -222,6 +222,12 @@ for e, caption_text in enumerate(captions):
             files = os.listdir(f'downloads/{n}/')
             file = random.choice(files)
             slide_picture = Image.open(f'downloads/{n}/{file}')
+
+
+        box = slide_picture.getbbox()
+        slide_picture = slide_picture.resize((int(box[2] * 1920/box[3]), 1920))
+
+
 
         img.paste(slide_picture)
 
