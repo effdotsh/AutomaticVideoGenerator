@@ -43,7 +43,18 @@ character_name = "Super Mario" if character_name == '' else character_name
 
 openai.api_key = env["OPENAI_API_KEY"]
 
-script_response = openai.Completion.create(model="text-davinci-003", prompt=f"Write an energetic script for a tik tok video about the strange history of {character_name}", temperature=0.1, max_tokens=300)
+prompt = f"Write an energetic script for a short-form video about the strange history of {character_name}. The script should only include the words spoken by the narrator. Speaking the script should take about 30 seconds."
+message_history = [{"role": "user", "content": prompt}]
+
+#davinci
+# script_response = openai.Completion.create(model="text-davinci-003", prompt=prompt, temperature=0.1, max_tokens=300)
+# text = script_response['choices'][0]['text']
+
+
+script_response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=message_history, temperature=0.1, max_tokens=300)
+text = script_response['choices'][0]['message']['content']
+text = text.replace('\\', '')
+
 print(script_response)
 #Cache:
 # script_response = {
@@ -66,7 +77,6 @@ print(script_response)
 #   }
 # }
 
-text = script_response['choices'][0]['text']
 with open('script.txt', 'w+') as f:
     f.write(text)
     f.flush()
