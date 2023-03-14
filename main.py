@@ -9,9 +9,18 @@ import requests
 import os
 
 from tqdm import tqdm
+import time
 
-if not os.path.exists("captions"):
-    os.mkdir("captions")
+start = time.time()
+
+import shutil
+
+if os.path.exists("captions"):
+    shutil.rmtree("captions")
+# if os.path.exists("downloads"):
+#     shutil.rmtree("downloads")
+
+os.mkdir("captions")
 
 
 def align(audio, text) -> dict:
@@ -34,27 +43,27 @@ character_name = "Super Mario" if character_name == '' else character_name
 
 openai.api_key = env["OPENAI_API_KEY"]
 
-script_response = openai.Completion.create(model="text-davinci-003", prompt=f"write an energetic script for a tik tok video about the strange history of {character_name}", temperature=0.2, max_tokens=200)
+script_response = openai.Completion.create(model="text-davinci-003", prompt=f"Write an energetic script for a tik tok video about the strange history of {character_name}", temperature=0.1, max_tokens=300)
 print(script_response)
 #Cache:
 # script_response = {
-#     "choices": [
-#         {
-#             "finish_reason": "stop",
-#             "index": 0,
-#             "logprobs": None,
-#             "text": "\n\nHey everyone! \n\nToday I'm here to talk about the strange history of Super Mario!\n\nDid you know that Mario was originally created as a character for the 1981 arcade game Donkey Kong? He was known as Jumpman and was a carpenter, not a plumber!\n\nMario's first appearance as a plumber was in the 1983 classic Super Mario Bros. But did you know that Mario was originally called Mr. Video? It wasn't until the game was released in Japan that he was given the name Mario!\n\nMario has come a long way since then. He's been in over 200 games, and he's even been featured in movies, TV shows, and cartoons!\n\nSo there you have it, the strange history of Super Mario! Thanks for watching!"
-#         }
-#     ],
-#     "created": 1678232696,
-#     "id": "cmpl-6rbHEWNr62dRfrN93WtsWB3qtbG8R",
-#     "model": "text-davinci-003",
-#     "object": "text_completion",
-#     "usage": {
-#         "completion_tokens": 163,
-#         "prompt_tokens": 19,
-#         "total_tokens": 182
+#   "choices": [
+#     {
+#       "finish_reason": "stop",
+#       "index": 0,
+#       "logprobs": None,
+#       "text": "\n\nHey everyone! \n\nToday I'm here to tell you about the strange history of Super Mario! \n\nIt all started in 1981 when Nintendo released the arcade game Donkey Kong. The main character was a carpenter named Jumpman, who was later renamed Mario. \n\nMario then starred in his own game, Mario Bros., in 1983. This game introduced his brother Luigi and the iconic green pipes. \n\nIn 1985, Super Mario Bros. was released and it changed the gaming world forever. This game introduced the world to the Mushroom Kingdom and the power-ups that we all know and love. \n\nSince then, Mario has starred in over 200 games and has become one of the most recognizable characters in the world. \n\nSo, that's the strange history of Super Mario! \n\n#supermario #gaming #history #nintendo #videogames"
 #     }
+#   ],
+#   "created": 1678763700,
+#   "id": "cmpl-6tpPoKXaKKfaj4ZRJOggTPaIvsgyH",
+#   "model": "text-davinci-003",
+#   "object": "text_completion",
+#   "usage": {
+#     "completion_tokens": 186,
+#     "prompt_tokens": 18,
+#     "total_tokens": 204
+#   }
 # }
 
 text = script_response['choices'][0]['text']
@@ -193,6 +202,9 @@ slide_picture = Image.new('RGB', (500, 500), color=(0, 0, 200))
 images = []
 def load(n):
     files = os.listdir(f'downloads/{n}/')
+    if len(files) == 0:
+        print(f'No files in {n}')
+        return
     file = random.choice(files)
     slide_picture = Image.open(f'downloads/{n}/{file}')
     box = slide_picture.getbbox()
@@ -209,9 +221,13 @@ for e, caption_text in enumerate(captions):
             single_nouns.pop(0)
             load(n)
 
-        end = aligned['words'][word_counter]['end']
-        frame_counter = int(end * 100)
+        gent_word = aligned['words'][word_counter]
         word_counter += 1
+
+        if gent_word['case'] != 'success':
+            continue
+        end = gent_word['end']
+        frame_counter = int(end * 100)
 
 total_frames = int(aligned['words'][-1]['end'] * 100)
 p_bar = tqdm(range(total_frames))
@@ -244,7 +260,14 @@ for e, caption_text in enumerate(captions):
             images.pop(0)
             pan_end = images[0][1] if len(images) > 0 else total_frames
 
-        end = aligned['words'][word_counter]['end']
+        gent_word = aligned['words'][word_counter]
+        if gent_word['case']=='success':
+            end = gent_word['end']
+        else:
+            while gent_word['case'] != 'success':
+                word_counter += 1
+                gent_word = aligned['words'][word_counter]
+            end = gent_word['start']
         num_frames = int(end * 100) - frame_counter
         for i in range(num_frames):
             img = Image.new('RGB', (1080, 1920), color=(255, 255, 255))
@@ -283,3 +306,7 @@ for e, caption_text in enumerate(captions):
             p_bar.n = frame_counter
             p_bar.refresh()
         word_counter += 1
+
+os.system(f'ffmpeg -framerate 100 -i captions/caption_%09d.png -c:v h264 -r 100 -i output.mp3 {character_name.replace(" ", "_")}.mp4')
+
+print(f'Done in {int(time.time()-start)} seconds')
