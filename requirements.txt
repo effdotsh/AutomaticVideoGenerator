@@ -4,7 +4,7 @@ python-dotenv
 
 ibm-watson
 
-duckduckgo-search 2.8.5
+duckduckgo-search==2.8.5
 
 pillow
 

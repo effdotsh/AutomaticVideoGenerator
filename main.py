@@ -97,7 +97,7 @@ from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
 import spacy
 
 # load the English language model
-nlp = spacy.load("en_core_web_sm")
+nlp = spacy.load("en_core_web_lg")
 # define a sentence with a multi-word proper noun
 # process the sentence with spaCy
 doc = nlp(text)
@@ -146,7 +146,7 @@ print("NOUNS: ", nouns)
 #
 # from ImageDownloader import download
 #
-# for n in nouns:
+# for n in [character_name] + nouns:
 #     print("Searching for:", n)
 #     download(f'{n}', limit=10)
 
@@ -605,7 +605,7 @@ import textwrap
 
 caption_counter = 0
 # load core english library
-nlp = spacy.load("en_core_web_sm")
+nlp = spacy.load("en_core_web_lg")
 doc2 = nlp(text.replace('/n', ''))
 text_size = 100
 caption_width = 16
@@ -635,36 +635,44 @@ word_counter = 0
 
 print("CAPTIONS: ", captions)
 
-p_bar = tqdm(range(int(aligned['words'][-1]['end'] * 100)))
-p_bar.n = 0
-p_bar.refresh()
-
 slide_picture = Image.new('RGB', (500, 500), color=(0, 0, 200))
 
 images = []
+def load(n):
+    files = os.listdir(f'downloads/{n}/')
+    file = random.choice(files)
+    slide_picture = Image.open(f'downloads/{n}/{file}')
+    box = slide_picture.getbbox()
+    slide_picture = slide_picture.resize((int(box[2] * 1920 / box[3]), 1920))
+    images.append((slide_picture, frame_counter))
+
+load(character_name)
+
 for e, caption_text in enumerate(captions):
     caption_text = str(caption_text).split(' ')
     for i in range(len(caption_text)):
         if len(single_nouns) > 0 and single_nouns[0].lower() in caption_text[i].lower():
             n = nouns.pop(0)
             single_nouns.pop(0)
+            load(n)
 
-            files = os.listdir(f'downloads/{n}/')
-            file = random.choice(files)
-            slide_picture = Image.open(f'downloads/{n}/{file}')
-            box = slide_picture.getbbox()
-            slide_picture = slide_picture.resize((int(box[2] * 1920 / box[3]), 1920))
-            images.append((slide_picture, frame_counter))
 
         end = aligned['words'][word_counter]['end']
         frame_counter = int(end * 100)
         word_counter += 1
 
+total_frames = int(aligned['words'][-1]['end'] * 100)
+p_bar = tqdm(range(total_frames))
+p_bar.n = 0
+p_bar.refresh()
 
-print(images)
 slide_picture = images[0][0]
 word_counter = 0
 frame_counter = 0
+
+pan_start = 0
+images.pop()
+pan_end = images[0][1]
 for e, caption_text in enumerate(captions):
     caption_text = str(caption_text).split(' ')
     combo = ''
@@ -677,47 +685,47 @@ for e, caption_text in enumerate(captions):
 
         font = ImageFont.truetype('KOMIKAX_.ttf', size=text_size)
 
-        img = Image.new('RGB', (1080, 1920), color=(0, 255, 0))
 
-        if frame_counter >= images[0][1]:
-            print(images, len(images))
+        if len(images) > 0 and frame_counter >= images[0][1]:
             slide_picture = images[0][0]
-            print(slide_picture)
+            pan_start = frame_counter
             images.pop(0)
-
-        img.paste(slide_picture)
-
-        # Create a drawing context
-        draw = ImageDraw.Draw(img)
-
-        # Specify the font to use
-
-        # Set the text to be drawn
-
-        # Set the desired width of the text box
-        textbox_width = 300
-
-        # Set the position of the text box
-        x = 60
-
-        y = 1920 - len(dummy_text_box) * char_height - 200
-
-        lines = textwrap.wrap(combo, width=caption_width)
-        textbox_height = len(lines) * font.getbbox(" ")[1] + 20
-
-        # Draw the text box
-
-        # Draw the text inside the text box
-        current_y = y + 10
-        for line in lines:
-            x = 1080 / 2 - font.getbbox(" ")[1] * (len(line) - 1) / 4
-            draw.text((x, current_y), line, font=font, fill='white', stroke_fill=(0, 0, 0), stroke_width=8)
-            current_y += font.getbbox(" ")[1]
+            pan_end = images[0][1] if len(images) > 0 else total_frames
 
         end = aligned['words'][word_counter]['end']
-
         num_frames = int(end * 100) - frame_counter
         for i in range(num_frames):
+            img = Image.new('RGB', (1080, 1920), color=(255, 255, 255))
+
+            total_pan = slide_picture.getbbox()[2] - 1080
+            pan = int((frame_counter - pan_start) / (pan_end - pan_start) * total_pan)
+
+            img.paste(slide_picture, (-pan, 0))
+
+            # Create a drawing context
+            draw = ImageDraw.Draw(img)
+
+            textbox_width = 300
+
+            # Set the position of the text box
+            x = 60
+
+            y = 1920 - len(dummy_text_box) * char_height - 200
+
+            lines = textwrap.wrap(combo, width=caption_width)
+            textbox_height = len(lines) * font.getbbox(" ")[1] + 20
+
+            # Draw the text box
+
+            # Draw the text inside the text box
+            current_y = y + 10
+            for line in lines:
+                x = 1080 / 2 - font.getbbox(" ")[1] * (len(line) - 1) / 4
+                draw.text((x, current_y), line, font=font, fill='white', stroke_fill=(0, 0, 0), stroke_width=8)
+                current_y += font.getbbox(" ")[1]
+
+
+
             # Save the image
             num_str = "{:09d}".format(frame_counter)
             img.save(f'captions/caption_{num_str}.png')
