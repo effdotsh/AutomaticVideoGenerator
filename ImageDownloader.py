@@ -16,6 +16,8 @@ def download(query: str, downloads_folder: str = "downloads", limit: int = 3, de
         path = f"{downloads_folder}/{query}/image_{i}.jpg"
         try:
             img = requests.get(src)
+            if(img.status_code != 200):
+                raise Exception(f"url had status code {img.status_code}")
             os.makedirs(f"{downloads_folder}/{query}/", exist_ok=True)
             BYTE_MINIMUM = 50_000
             if len(img.content) > BYTE_MINIMUM:
