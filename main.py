@@ -247,6 +247,7 @@ frame_counter = 0
 pan_start = 0
 images.pop()
 pan_end = images[0][1]
+img = None
 for e, caption_text in enumerate(captions):
     caption_text = str(caption_text).split(' ')
     combo = ''
@@ -315,6 +316,13 @@ for e, caption_text in enumerate(captions):
             p_bar.n = frame_counter
             p_bar.refresh()
         word_counter += 1
+        if word_counter == len(aligned['words']):
+            break
+
+for i in range(20):
+    num_str = "{:09d}".format(frame_counter)
+    img.save(f'{GENERATE_FOLDER}/caption_{num_str}.png')
+    frame_counter += 1
 
 ffmpeg_command = f'ffmpeg -framerate 100 -i {GENERATE_FOLDER}/caption_%09d.png -r 100 -i {GENERATE_FOLDER}/voiceover.mp3 {character_name.replace(" ", "_")}.mp4'
 print(ffmpeg_command)
