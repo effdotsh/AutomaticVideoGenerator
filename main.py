@@ -15,19 +15,21 @@ start = time.time()
 
 import shutil
 
-if os.path.exists("captions"):
-    shutil.rmtree("captions")
-# if os.path.exists("downloads"):
-#     shutil.rmtree("downloads")
 
-os.mkdir("captions")
+character_name = input("Character Name: ")
+character_name = "Super Mario" if character_name == '' else character_name
 
+
+GENERATE_FOLDER = f'generate_{character_name.replace(" ", "")}'
+if os.path.exists(GENERATE_FOLDER):
+    shutil.rmtree(GENERATE_FOLDER)
+os.makedirs(f'{GENERATE_FOLDER}/downloads')
 
 def align(audio, text) -> dict:
     # get output from gentle
     url = 'http://localhost:8765/transcriptions?async=false'
     files = {'audio': open(audio, 'rb'),
-             'transcript': open(text, 'rb')}
+             'transcript': str.encode(text)}
     try:
         r = requests.post(url, files=files)
     except requests.exceptions.RequestException as e:
@@ -38,12 +40,11 @@ def align(audio, text) -> dict:
 
 env = dict(dotenv_values(".env"))
 
-character_name = input("Character Name: ")
-character_name = "Super Mario" if character_name == '' else character_name
+
 
 openai.api_key = env["OPENAI_API_KEY"]
 
-prompt = f"Write an energetic script for a short-form video about the strange history of {character_name}. The script should only include the words spoken by the narrator. Speaking the script should take about 30 seconds."
+prompt = f"Write an energetic script for a short-form video about the strange history of how {character_name}. Speaking the script should take about 30 seconds. Do not include quotation marks."
 message_history = [{"role": "user", "content": prompt}]
 
 #davinci
@@ -53,7 +54,7 @@ message_history = [{"role": "user", "content": prompt}]
 
 script_response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=message_history, temperature=0.1, max_tokens=300)
 text = script_response['choices'][0]['message']['content']
-text = text.replace('\\', '')
+text = text.replace('\\', '').replace("Narrator:", '').replace('"','')
 
 print(script_response)
 #Cache:
@@ -76,11 +77,6 @@ print(script_response)
 #     "total_tokens": 204
 #   }
 # }
-
-with open('script.txt', 'w+') as f:
-    f.write(text)
-    f.flush()
-    f.close()
 print(text)
 
 import ibm_watson
@@ -96,7 +92,7 @@ text_to_speech = TextToSpeechV1(
 text_to_speech.set_service_url(env['WATSON_TTS_URL'])
 
 # Generate speech from text
-with open('output.mp3', 'wb') as audio_file:
+with open(f'{GENERATE_FOLDER}/voiceover.mp3', 'wb') as audio_file:
     response = text_to_speech.synthesize(
         text=f'<prosody pitch="-25%" rate="+5%">{text}</prosody>',
         accept='audio/mp3',
@@ -160,11 +156,11 @@ from ImageDownloader import download
 
 for n in [character_name] + nouns:
     print("Searching for:", n)
-    download(f'{n}', limit=10)
+    download(f'{n}', limit=10, downloads_folder=f'{GENERATE_FOLDER}/downloads/')
 
 single_nouns = [a.split(' ')[0] for a in nouns]
 
-aligned = align('output.mp3', 'script.txt')
+aligned = align(f'{GENERATE_FOLDER}/voiceover.mp3', text)
 
 print(aligned['words'])
 
@@ -211,12 +207,12 @@ slide_picture = Image.new('RGB', (500, 500), color=(0, 0, 200))
 
 images = []
 def load(n):
-    files = os.listdir(f'downloads/{n}/')
+    files = os.listdir(f'{GENERATE_FOLDER}/downloads/{n}/')
     if len(files) == 0:
         print(f'No files in {n}')
         return
     file = random.choice(files)
-    slide_picture = Image.open(f'downloads/{n}/{file}')
+    slide_picture = Image.open(f'{GENERATE_FOLDER}/downloads/{n}/{file}')
     box = slide_picture.getbbox()
     slide_picture = slide_picture.resize((int(box[2] * 1920 / box[3]), 1920))
     images.append((slide_picture, frame_counter))
@@ -276,6 +272,9 @@ for e, caption_text in enumerate(captions):
         else:
             while gent_word['case'] != 'success':
                 word_counter += 1
+                if word_counter == len(aligned['words']):
+                    gent_word = {'end': total_frames}
+                    break
                 gent_word = aligned['words'][word_counter]
             end = gent_word['start']
         num_frames = int(end * 100) - frame_counter
@@ -311,12 +310,14 @@ for e, caption_text in enumerate(captions):
 
             # Save the image
             num_str = "{:09d}".format(frame_counter)
-            img.save(f'captions/caption_{num_str}.png')
+            img.save(f'{GENERATE_FOLDER}/caption_{num_str}.png')
             frame_counter += 1
             p_bar.n = frame_counter
             p_bar.refresh()
         word_counter += 1
 
-os.system(f'ffmpeg -framerate 100 -i captions/caption_%09d.png -c:v h264 -r 100 -i output.mp3 {character_name.replace(" ", "_")}.mp4')
+ffmpeg_command = f'ffmpeg -framerate 100 -i {GENERATE_FOLDER}/caption_%09d.png -c:v h264 -r 100 -i {GENERATE_FOLDER}/voiceover.mp3 {character_name.replace(" ", "_")}.mp4'
+print(ffmpeg_command)
+os.system(ffmpeg_command)
 
 print(f'Done in {int(time.time()-start)} seconds')

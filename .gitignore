@@ -6,6 +6,8 @@ venv
 
 script.txt
 captions
+captions_*
+generate_*
 frames
 downloads
 
