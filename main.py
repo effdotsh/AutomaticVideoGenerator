@@ -316,7 +316,7 @@ for e, caption_text in enumerate(captions):
             p_bar.refresh()
         word_counter += 1
 
-ffmpeg_command = f'ffmpeg -framerate 100 -i {GENERATE_FOLDER}/caption_%09d.png -c:v h264 -r 100 -i {GENERATE_FOLDER}/voiceover.mp3 {character_name.replace(" ", "_")}.mp4'
+ffmpeg_command = f'ffmpeg -framerate 100 -i {GENERATE_FOLDER}/caption_%09d.png -r 100 -i {GENERATE_FOLDER}/voiceover.mp3 {character_name.replace(" ", "_")}.mp4'
 print(ffmpeg_command)
 os.system(ffmpeg_command)
 
