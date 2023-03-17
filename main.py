@@ -44,7 +44,7 @@ env = dict(dotenv_values(".env"))
 
 openai.api_key = env["OPENAI_API_KEY"]
 
-prompt = f"Write an energetic script for a short-form video about the strange history of how {character_name}. Speaking the script should take about 30 seconds. Do not include quotation marks."
+prompt = f"Write an energetic script for a short-form video about the strange history of how {character_name}. Speaking the script should take about 30 seconds. Do not include quotation marks. The script should not have a greeting at the beginning."
 message_history = [{"role": "user", "content": prompt}]
 
 #davinci
@@ -219,6 +219,11 @@ def load(n):
 
 load(character_name)
 
+total_frames = int(aligned['words'][-1]['start'] * 100)
+p_bar = tqdm(range(total_frames))
+p_bar.n = 0
+p_bar.refresh()
+
 for e, caption_text in enumerate(captions):
     caption_text = str(caption_text).split(' ')
     for i in range(len(caption_text)):
@@ -227,18 +232,26 @@ for e, caption_text in enumerate(captions):
             single_nouns.pop(0)
             load(n)
 
-        gent_word = aligned['words'][word_counter]
+        if word_counter >= len(aligned['words']):
+            break
+        else:
+            gent_word = aligned['words'][word_counter]
         word_counter += 1
 
-        if gent_word['case'] != 'success':
-            continue
-        end = gent_word['end']
+
+        if gent_word['case'] == 'success':
+            end = gent_word['start']
+        else:
+            while gent_word['case'] != 'success':
+                word_counter += 1
+                if word_counter == len(aligned['words']):
+                    gent_word = {'end': total_frames, 'start': total_frames, 'case':'success'}
+                    break
+                gent_word = aligned['words'][word_counter]
+            end = gent_word['start']
+
         frame_counter = int(end * 100)
 
-total_frames = int(aligned['words'][-1]['end'] * 100)
-p_bar = tqdm(range(total_frames))
-p_bar.n = 0
-p_bar.refresh()
 
 slide_picture = images[0][0]
 word_counter = 0
@@ -269,12 +282,12 @@ for e, caption_text in enumerate(captions):
 
         gent_word = aligned['words'][word_counter]
         if gent_word['case']=='success':
-            end = gent_word['end']
+            end = gent_word['start']
         else:
             while gent_word['case'] != 'success':
                 word_counter += 1
                 if word_counter == len(aligned['words']):
-                    gent_word = {'end': total_frames}
+                    gent_word = {'start': total_frames}
                     break
                 gent_word = aligned['words'][word_counter]
             end = gent_word['start']

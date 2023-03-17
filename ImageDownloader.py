@@ -11,7 +11,7 @@ def download(query: str, downloads_folder: str = "downloads", limit: int = 3, de
              delay_max: float = 10):
     r = ddg_images(query, safesearch='On', size=None, type_image=None, layout=None, license_image=None, max_results=300)
 
-    for i in range(limit):
+    for i in range(min(limit, len(r))):
         src = r[i]['image']
         path = f"{downloads_folder}/{query}/image_{i}.jpg"
         try:
@@ -19,7 +19,7 @@ def download(query: str, downloads_folder: str = "downloads", limit: int = 3, de
             if(img.status_code != 200):
                 raise Exception(f"url had status code {img.status_code}")
             os.makedirs(f"{downloads_folder}/{query}/", exist_ok=True)
-            BYTE_MINIMUM = 50_000
+            BYTE_MINIMUM = 20_000
             if len(img.content) > BYTE_MINIMUM:
                 with open(path, "wb") as f:
                     f.write(img.content)
