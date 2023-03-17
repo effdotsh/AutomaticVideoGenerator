@@ -296,6 +296,8 @@ for e, caption_text in enumerate(captions):
             img = Image.new('RGB', (1080, 1920), color=(255, 255, 255))
 
             total_pan = slide_picture.getbbox()[2] - 1080
+            if pan_start == pan_end:
+                continue
             pan = int((frame_counter - pan_start) / (pan_end - pan_start) * total_pan)
 
             img.paste(slide_picture, (-pan, 0))
