@@ -17,10 +17,10 @@ import shutil
 
 
 character_name = input("Character Name: ")
-character_name = "Super Mario" if character_name == '' else character_name
+character_name = "Pac-Man" if character_name == '' else character_name
 
 
-GENERATE_FOLDER = f'generate_{character_name.replace(" ", "")}'
+GENERATE_FOLDER = f'generate/{character_name.replace(" ", "")}'
 if os.path.exists(GENERATE_FOLDER):
     shutil.rmtree(GENERATE_FOLDER)
 os.makedirs(f'{GENERATE_FOLDER}/downloads')
@@ -44,39 +44,14 @@ env = dict(dotenv_values(".env"))
 
 openai.api_key = env["OPENAI_API_KEY"]
 
-prompt = f"You are a short-form video creator who makes videos about the strange history behind the development, writing, and creation of video game characters. Write an energetic script about {character_name}. Speaking the script should take about 30 seconds. Do not include quotation marks. The script should not include a greeting or salutaion at the beginning."
+prompt = f'You are a short-form video creator who makes videos about the strange history behind the development, writing, and creation of video game characters. Write an energetic script about {character_name}. Speaking the script should take about 60 seconds. Do not include quotation marks. The script should not include a greeting or salutation at the beginning. Do not say "hey there" at the beginning.'
 message_history = [{"role": "user", "content": prompt}]
-
-#davinci
-# script_response = openai.Completion.create(model="text-davinci-003", prompt=prompt, temperature=0.1, max_tokens=300)
-# text = script_response['choices'][0]['text']
-
 
 script_response = openai.ChatCompletion.create(model="gpt-4", messages=message_history, temperature=0.15, max_tokens=300)
 text = script_response['choices'][0]['message']['content']
 text = text.replace('\\', '').replace("Narrator:", '').replace('"','')
 
 print(script_response)
-#Cache:
-# script_response = {
-#   "choices": [
-#     {
-#       "finish_reason": "stop",
-#       "index": 0,
-#       "logprobs": None,
-#       "text": "\n\nHey everyone! \n\nToday I'm here to tell you about the strange history of Super Mario! \n\nIt all started in 1981 when Nintendo released the arcade game Donkey Kong. The main character was a carpenter named Jumpman, who was later renamed Mario. \n\nMario then starred in his own game, Mario Bros., in 1983. This game introduced his brother Luigi and the iconic green pipes. \n\nIn 1985, Super Mario Bros. was released and it changed the gaming world forever. This game introduced the world to the Mushroom Kingdom and the power-ups that we all know and love. \n\nSince then, Mario has starred in over 200 games and has become one of the most recognizable characters in the world. \n\nSo, that's the strange history of Super Mario! \n\n#supermario #gaming #history #nintendo #videogames"
-#     }
-#   ],
-#   "created": 1678763700,
-#   "id": "cmpl-6tpPoKXaKKfaj4ZRJOggTPaIvsgyH",
-#   "model": "text-davinci-003",
-#   "object": "text_completion",
-#   "usage": {
-#     "completion_tokens": 186,
-#     "prompt_tokens": 18,
-#     "total_tokens": 204
-#   }
-# }
 print(text)
 
 import ibm_watson
@@ -101,6 +76,15 @@ with open(f'{GENERATE_FOLDER}/voiceover.mp3', 'wb') as audio_file:
     audio_file.write(response.content)
 
 
+def find_word_index(text, char_index):
+    words = text.split()
+    index = 0
+    for i, word in enumerate(words):
+        if char_index >= index and char_index < index + len(word):
+            return i
+        index += len(word) + 1  # add 1 for the space between words
+    return len(words)  # char_index was out of range
+
 
 import spacy
 
@@ -117,25 +101,27 @@ pc = 0
 ic = 0
 nouns = []
 while pc < len(p_nouns) and ic < len(i_nouns):
-    if p_nouns[pc].start < i_nouns[ic].i:
+    ptext = p_nouns[pc].text
+    pstart = find_word_index(text, p_nouns[pc].start_char)
 
-        t = p_nouns[pc].text
-        s = p_nouns[pc].start
-        while s > 0:  # exception for Mr./Mrs./Dr. etc
-            if doc[s - 1].pos_ == 'PROPN':
-                t = doc[s - 1].text + ' ' + t
-                s -= 1
+    itext = i_nouns[ic].text
+    istart = find_word_index(text, i_nouns[ic].idx)
+
+    if pstart < istart:
+        while pstart > 0:  # exception for Mr./Mrs./Dr. etc
+            if doc[pstart - 1].pos_ == 'PROPN':
+                ptext = doc[pstart - 1].text + ' ' + ptext
+                pstart -= 1
             else:
                 break
-
-        nouns.append(t)
+        nouns.append((ptext, pstart))
         pc += 1
     else:
-        nouns.append(i_nouns[ic].text)
+        nouns.append((itext, istart))
         ic += 1
 while pc < len(p_nouns):
     t = p_nouns[pc].text
-    s = p_nouns[pc].start
+    s = find_word_index(text, p_nouns[pc].start_char)
     while s > 0:  # exception for Mr./Mrs./Dr. etc
         if doc[s - 1].pos_ == 'PROPN':
             t = doc[s - 1].text + ' ' + t
@@ -143,26 +129,26 @@ while pc < len(p_nouns):
         else:
             break
 
-    nouns.append(t)
+    nouns.append((t, s))
     pc += 1
 while ic < len(i_nouns):
-    nouns.append(i_nouns[ic].text)
+    t = i_nouns[ic].text
+    s = find_word_index(text, i_nouns[ic].idx)
+    nouns.append((t, s))
     ic += 1
 print("NOUNS: ", nouns)
 
 # Download images from duckduckgo
-#
+
 from ImageDownloader import download
 
-for n in [character_name] + nouns:
+for n in [character_name] + [a[0] for a in nouns]:
     print("Searching for:", n)
-    download(f'{n}', limit=10, downloads_folder=f'{GENERATE_FOLDER}/downloads/')
-
-single_nouns = [a.split(' ')[0] for a in nouns]
+    download(f'{n}', limit=10, downloads_folder=f'{GENERATE_FOLDER}/downloads/', replace={"character":character_name})
 
 aligned = align(f'{GENERATE_FOLDER}/voiceover.mp3', text)
 
-print(aligned['words'])
+# print(aligned['words'])
 
 ###########################
 ## create caption images ##
@@ -184,9 +170,6 @@ size = 3
 for e, sent in enumerate(doc2.sents):
     sent = str(sent).replace('\n', '')
     s = sent.split(' ')
-    print('---')
-    print(sent)
-    print(s)
     if len(s) < size + 1:
         captions += [sent]
     else:
@@ -216,6 +199,7 @@ def load(n):
     box = slide_picture.getbbox()
     slide_picture = slide_picture.resize((int(box[2] * 1920 / box[3]), 1920))
     images.append((slide_picture, frame_counter))
+    print(f'Image loaded for: {n}')
 
 load(character_name)
 
@@ -224,19 +208,21 @@ p_bar = tqdm(range(total_frames))
 p_bar.n = 0
 p_bar.refresh()
 
+
+
 for e, caption_text in enumerate(captions):
     caption_text = str(caption_text).split(' ')
     for i in range(len(caption_text)):
-        if len(single_nouns) > 0 and single_nouns[0].lower() in caption_text[i].lower():
+        if word_counter >= nouns[0][1]:
             n = nouns.pop(0)
-            single_nouns.pop(0)
-            load(n)
+            load(n[0])
+
+        word_counter += 1
 
         if word_counter >= len(aligned['words']):
             break
         else:
             gent_word = aligned['words'][word_counter]
-        word_counter += 1
 
 
         if gent_word['case'] == 'success':

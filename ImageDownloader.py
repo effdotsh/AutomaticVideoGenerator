@@ -8,7 +8,12 @@ from duckduckgo_search import ddg_images
 
 
 def download(query: str, downloads_folder: str = "downloads", limit: int = 3, delay_min: float = 5,
-             delay_max: float = 10):
+             delay_max: float = 10, replace=None):
+    if replace is None:
+        replace = {}
+
+    if query.lower() in replace:
+        query = replace[query.lower()]
     r = ddg_images(query, safesearch='On', size=None, type_image=None, layout=None, license_image=None, max_results=300)
 
     success_counter = 0
@@ -17,7 +22,7 @@ def download(query: str, downloads_folder: str = "downloads", limit: int = 3, de
         src = r[i]['image']
         path = f"{downloads_folder}/{query}/image_{i}.jpg"
         try:
-            img = requests.get(src)
+            img = requests.get(src, timeout=15)
             if(img.status_code != 200):
                 raise Exception(f"url had status code {img.status_code}")
             os.makedirs(f"{downloads_folder}/{query}/", exist_ok=True)
@@ -25,9 +30,11 @@ def download(query: str, downloads_folder: str = "downloads", limit: int = 3, de
             if len(img.content) > BYTE_MINIMUM:
                 with open(path, "wb") as f:
                     f.write(img.content)
+                    success_counter += 1
             else:
                 print(f'{src} did not meet the byte minimum')
-            success_counter += 1
+        except KeyboardInterrupt:
+            quit()
         except:
             print(f'Error downloading image from {src} to {path}')
             if os.path.exists(path):
