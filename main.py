@@ -44,7 +44,7 @@ env = dict(dotenv_values(".env"))
 
 openai.api_key = env["OPENAI_API_KEY"]
 
-prompt = f"Write an energetic script for a short-form video about the strange history of how {character_name}. Speaking the script should take about 30 seconds. Do not include quotation marks. The script should not include a greeting or salutaion at the beginning."
+prompt = f"You are a short-form video creator who makes videos about the strange history behind the development, writing, and creation of video game characters. Write an energetic script about {character_name}. Speaking the script should take about 30 seconds. Do not include quotation marks. The script should not include a greeting or salutaion at the beginning."
 message_history = [{"role": "user", "content": prompt}]
 
 #davinci
@@ -52,7 +52,7 @@ message_history = [{"role": "user", "content": prompt}]
 # text = script_response['choices'][0]['text']
 
 
-script_response = openai.ChatCompletion.create(model="gpt-4", messages=message_history, temperature=0.1, max_tokens=300)
+script_response = openai.ChatCompletion.create(model="gpt-4", messages=message_history, temperature=0.15, max_tokens=300)
 text = script_response['choices'][0]['message']['content']
 text = text.replace('\\', '').replace("Narrator:", '').replace('"','')
 
@@ -286,7 +286,7 @@ for e, caption_text in enumerate(captions):
         else:
             while gent_word['case'] != 'success':
                 word_counter += 1
-                if word_counter == len(aligned['words']):
+                if word_counter >= len(aligned['words']):
                     gent_word = {'start': total_frames}
                     break
                 gent_word = aligned['words'][word_counter]
