@@ -21,9 +21,9 @@ character_name = "Pac-Man" if character_name == '' else character_name
 
 
 GENERATE_FOLDER = f'generate/{character_name.replace(" ", "")}'
-if os.path.exists(GENERATE_FOLDER):
-    shutil.rmtree(GENERATE_FOLDER)
-os.makedirs(f'{GENERATE_FOLDER}/downloads')
+# if os.path.exists(GENERATE_FOLDER):
+#     shutil.rmtree(GENERATE_FOLDER)
+# os.makedirs(f'{GENERATE_FOLDER}/downloads')
 
 def align(audio, text) -> dict:
     # get output from gentle
@@ -42,29 +42,57 @@ env = dict(dotenv_values(".env"))
 
 
 
-openai.api_key = env["OPENAI_API_KEY"]
+# openai.api_key = env["OPENAI_API_KEY"]
+#
+# prompt = f'You are a short-form video creator who makes videos about the strange history behind the development, writing, and creation of video game characters. Write an energetic script about {character_name}. Speaking the script should take about 45 seconds. Do not include quotation marks. The script should not include a greeting or salutation at the beginning. Do not say "hey there" at the beginning.'
+# message_history = [{"role": "user", "content": prompt}]
+#
+# script_response = openai.ChatCompletion.create(model="gpt-4", messages=message_history, temperature=0.15, max_tokens=300)
 
-prompt = f'You are a short-form video creator who makes videos about the strange history behind the development, writing, and creation of video game characters. Write an energetic script about {character_name}. Speaking the script should take about 60 seconds. Do not include quotation marks. The script should not include a greeting or salutation at the beginning. Do not say "hey there" at the beginning.'
-message_history = [{"role": "user", "content": prompt}]
+script_response = {
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "Get ready for a blast from the past as we dive into the strange history behind the creation of the iconic video game character, Pac-Man! Developed by Namco in 1980, Pac-Man was inspired by a pizza with a slice missing. Creator Toru Iwatani wanted to create a game that appealed to both genders, and the idea of a character eating its way through a maze was born!\n\nBut did you know Pac-Man was originally called \"Puck-Man\"? The name was changed to avoid potential vandalism of arcade machines, with people changing the \"P\" to an \"F\" \u2013 yikes! And those pesky ghosts? They're named Blinky, Pinky, Inky, and Clyde, each with their own unique personalities and movement patterns.\n\nPac-Man's success led to a massive franchise, including spin-offs, merchandise, and even a TV show! So next time you're munching on power pellets and chasing ghosts, remember the fascinating history behind this legendary character! Waka waka!",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1679279363,
+  "id": "chatcmpl-6vzYxxAUu8x0Tk82ZuVezN34l3gQp",
+  "model": "gpt-4-0314",
+  "object": "chat.completion",
+  "usage": {
+    "completion_tokens": 206,
+    "prompt_tokens": 82,
+    "total_tokens": 288
+  }
+}
 
-script_response = openai.ChatCompletion.create(model="gpt-4", messages=message_history, temperature=0.15, max_tokens=300)
+
 text = script_response['choices'][0]['message']['content']
-text = text.replace('\\', '').replace("Narrator:", '').replace('"','')
+text = text.replace('\\', '').replace("Narrator:", ' ').replace('"','').replace('\n', ' ')
+import re
+text = re.sub(r"\s+", " ", text)
+print(text)
+
 
 print(script_response)
 print(text)
 
-import ibm_watson
-from ibm_watson import TextToSpeechV1
-from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
-
-# Set up the Text to Speech service
-authenticator = IAMAuthenticator(env['WATSON_API_KEY'])
-text_to_speech = TextToSpeechV1(
-    authenticator=authenticator
-)
-
-text_to_speech.set_service_url(env['WATSON_TTS_URL'])
+# import ibm_watson
+# from ibm_watson import TextToSpeechV1
+# from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
+#
+# # Set up the Text to Speech service
+# authenticator = IAMAuthenticator(env['WATSON_API_KEY'])
+# text_to_speech = TextToSpeechV1(
+#     authenticator=authenticator
+# )
+#
+# text_to_speech.set_service_url(env['WATSON_TTS_URL'])
 
 # Generate speech from text
 with open(f'{GENERATE_FOLDER}/voiceover.mp3', 'wb') as audio_file:
@@ -144,15 +172,13 @@ from ImageDownloader import download
 
 for n in [character_name] + [a[0] for a in nouns]:
     print("Searching for:", n)
-    download(f'{n}', limit=10, downloads_folder=f'{GENERATE_FOLDER}/downloads/', replace={"character":character_name})
-
+    download(f'{n}', limit=3, downloads_folder=f'{GENERATE_FOLDER}/downloads/', replace={"character":character_name})
+#
 aligned = align(f'{GENERATE_FOLDER}/voiceover.mp3', text)
 
-# print(aligned['words'])
+print(aligned['words'])
 
-###########################
-## create caption images ##
-###########################
+
 import spacy
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
@@ -168,7 +194,7 @@ char_height = text_size + 20
 captions = []
 size = 3
 for e, sent in enumerate(doc2.sents):
-    sent = str(sent).replace('\n', '')
+    sent = str(sent)
     s = sent.split(' ')
     if len(s) < size + 1:
         captions += [sent]
@@ -186,8 +212,6 @@ word_counter = 0
 
 print("CAPTIONS: ", captions)
 
-slide_picture = Image.new('RGB', (500, 500), color=(0, 0, 200))
-
 images = []
 def load(n):
     files = os.listdir(f'{GENERATE_FOLDER}/downloads/{n}/')
@@ -198,22 +222,19 @@ def load(n):
     slide_picture = Image.open(f'{GENERATE_FOLDER}/downloads/{n}/{file}')
     box = slide_picture.getbbox()
     slide_picture = slide_picture.resize((int(box[2] * 1920 / box[3]), 1920))
-    images.append((slide_picture, frame_counter))
-    print(f'Image loaded for: {n}')
+    images.append((slide_picture, frame_counter, n))
 
 load(character_name)
 
-total_frames = int(aligned['words'][-1]['start'] * 100)
-p_bar = tqdm(range(total_frames))
-p_bar.n = 0
-p_bar.refresh()
-
-
+from pydub import AudioSegment
+audio = AudioSegment.from_mp3(f'{GENERATE_FOLDER}/voiceover.mp3')
+length_in_secs = len(audio) / 1000.0
+total_frames = int(length_in_secs*100 + 0.5)
 
 for e, caption_text in enumerate(captions):
     caption_text = str(caption_text).split(' ')
     for i in range(len(caption_text)):
-        if word_counter >= nouns[0][1]:
+        if len(nouns) > 0 and word_counter >= nouns[0][1]:
             n = nouns.pop(0)
             load(n[0])
 
@@ -244,86 +265,97 @@ word_counter = 0
 frame_counter = 0
 
 pan_start = 0
-images.pop()
 pan_end = images[0][1]
+
 img = None
+font = ImageFont.truetype('KOMIKAX_.ttf', size=text_size)
+
+p_bar = tqdm(range(total_frames+20))
+p_bar.n = 0
+p_bar.refresh()
+print(images)
 for e, caption_text in enumerate(captions):
-    caption_text = str(caption_text).split(' ')
-    combo = ''
-
     dummy_text_box = textwrap.wrap(" ".join(caption_text), width=caption_width)
+    word_counter += caption_text.count(' ') + caption_text.count('-') + 1
+    if word_counter >= len(aligned['words']):
+        break
 
-    for i in range(len(caption_text)):
-        # combo += caption_text[i] + ' '
-        combo = " ".join(caption_text)
+    gent_word = aligned['words'][word_counter]
 
-        font = ImageFont.truetype('KOMIKAX_.ttf', size=text_size)
-
-
-        if len(images) > 0 and frame_counter >= images[0][1]:
+    if gent_word['case'] == 'success':
+        end = gent_word['start']
+    else:
+        offset = 0
+        while gent_word['case'] != 'success':
+            print(gent_word)
+            word_counter += 1
+            if word_counter + offset >= len(aligned['words']):
+                gent_word = {'start': total_frames, "word":"empty"}
+                break
+            gent_word = aligned['words'][word_counter+offset]
+        end = gent_word['start']
+    print(caption_text, frame_counter, end, gent_word['word'])
+    num_frames = int(100*end - frame_counter)
+    for i in range(num_frames):
+        if len(images) == 0:
+            pass
+        elif len(images) == 1:
             slide_picture = images[0][0]
             pan_start = frame_counter
+            pan_end = total_frames
             images.pop(0)
-            pan_end = images[0][1] if len(images) > 0 else total_frames
+        elif frame_counter >= images[0][1]:
+            slide_picture = images[0][0]
 
-        gent_word = aligned['words'][word_counter]
-        if gent_word['case']=='success':
-            end = gent_word['start']
-        else:
-            while gent_word['case'] != 'success':
-                word_counter += 1
-                if word_counter >= len(aligned['words']):
-                    gent_word = {'start': total_frames}
-                    break
-                gent_word = aligned['words'][word_counter]
-            end = gent_word['start']
-        num_frames = int(end * 100) - frame_counter
-        for i in range(num_frames):
-            img = Image.new('RGB', (1080, 1920), color=(255, 255, 255))
+            images.pop(0)
+            pan_start = frame_counter
+            pan_end = images[0][1]
+        img = Image.new('RGB', (1080, 1920), color=(255, 255, 255))
 
-            total_pan = slide_picture.getbbox()[2] - 1080
-            if pan_start == pan_end:
-                continue
-            pan = int((frame_counter - pan_start) / (pan_end - pan_start) * total_pan)
+        total_pan = slide_picture.getbbox()[2] - 1080
 
-            img.paste(slide_picture, (-pan, 0))
+        pan = int((frame_counter - pan_start) / (pan_end - pan_start) * total_pan)
 
-            # Create a drawing context
-            draw = ImageDraw.Draw(img)
+        # img.paste(slide_picture, (-pan, 0))
 
-            textbox_width = 300
+        # Create a drawing context
+        draw = ImageDraw.Draw(img)
 
-            # Set the position of the text box
-            x = 60
+        textbox_width = 300
 
-            y = 1920 - len(dummy_text_box) * char_height - 200
+        # Set the position of the text box
+        x = 60
 
-            lines = textwrap.wrap(combo, width=caption_width)
-            textbox_height = len(lines) * font.getbbox(" ")[1] + 20
+        y = 1920 - len(dummy_text_box) * char_height - 200
 
-            # Draw the text box
+        lines = textwrap.wrap(caption_text, width=caption_width)
+        textbox_height = len(lines) * font.getbbox(" ")[1] + 20
 
-            # Draw the text inside the text box
-            current_y = y + 10
-            for line in lines:
-                x = 1080 / 2 - font.getbbox(" ")[1] * (len(line) - 1) / 4
-                draw.text((x, current_y), line, font=font, fill='white', stroke_fill=(0, 0, 0), stroke_width=8)
-                current_y += font.getbbox(" ")[1]
+        # Draw the text box
 
-            # Save the image
-            num_str = "{:09d}".format(frame_counter)
-            img.save(f'{GENERATE_FOLDER}/caption_{num_str}.png')
-            frame_counter += 1
-            p_bar.n = frame_counter
-            p_bar.refresh()
-        word_counter += 1
-        if word_counter == len(aligned['words']):
-            break
+        # Draw the text inside the text box
+        current_y = y + 10
+        for line in lines:
+            x = 1080 / 2 - font.getbbox(" ")[1] * (len(line) - 1) / 4
+            draw.text((x, current_y), line, font=font, fill='white', stroke_fill=(0, 0, 0), stroke_width=8)
+            current_y += font.getbbox(" ")[1]
 
-for i in range(20):
+        # Save the image
+        num_str = "{:09d}".format(frame_counter)
+        img.save(f'{GENERATE_FOLDER}/caption_{num_str}.png')
+        frame_counter += 1
+        p_bar.n = frame_counter
+        p_bar.refresh()
+
+    if word_counter >= len(aligned['words']):
+        break
+
+for i in range(total_frames-frame_counter+20):
     num_str = "{:09d}".format(frame_counter)
     img.save(f'{GENERATE_FOLDER}/caption_{num_str}.png')
     frame_counter += 1
+    p_bar.n = frame_counter
+    p_bar.refresh()
 
 ffmpeg_command = f'ffmpeg -framerate 100 -i {GENERATE_FOLDER}/caption_%09d.png -r 100 -i {GENERATE_FOLDER}/voiceover.mp3 {character_name.replace(" ", "_")}.mp4'
 print(ffmpeg_command)
