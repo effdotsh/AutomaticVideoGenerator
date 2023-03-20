@@ -93,15 +93,15 @@ print(text)
 # )
 #
 # text_to_speech.set_service_url(env['WATSON_TTS_URL'])
-
-# Generate speech from text
-with open(f'{GENERATE_FOLDER}/voiceover.mp3', 'wb') as audio_file:
-    response = text_to_speech.synthesize(
-        text=f'<prosody pitch="-25%" rate="+5%">{text}</prosody>',
-        accept='audio/mp3',
-        voice='en-AU_JackExpressive',
-    ).get_result()
-    audio_file.write(response.content)
+#
+# # Generate speech from text
+# with open(f'{GENERATE_FOLDER}/voiceover.mp3', 'wb') as audio_file:
+#     response = text_to_speech.synthesize(
+#         text=f'<prosody pitch="-25%" rate="+5%">{text}</prosody>',
+#         accept='audio/mp3',
+#         voice='en-AU_JackExpressive',
+#     ).get_result()
+#     audio_file.write(response.content)
 
 
 def find_word_index(text, char_index):
@@ -166,14 +166,19 @@ while ic < len(i_nouns):
     ic += 1
 print("NOUNS: ", nouns)
 
-# Download images from duckduckgo
-
-from ImageDownloader import download
-
-for n in [character_name] + [a[0] for a in nouns]:
-    print("Searching for:", n)
-    download(f'{n}', limit=3, downloads_folder=f'{GENERATE_FOLDER}/downloads/', replace={"character":character_name})
+# # Download images from duckduckgo
 #
+# from ImageDownloader import download
+#
+# for n in [character_name] + [a[0] for a in nouns]:
+#     print("Searching for:", n)
+#     download(f'{n}', limit=3, downloads_folder=f'{GENERATE_FOLDER}/downloads/', replace={"character":character_name})
+# #
+
+
+
+
+
 aligned = align(f'{GENERATE_FOLDER}/voiceover.mp3', text)
 
 print(aligned['words'])
@@ -270,13 +275,13 @@ pan_end = images[0][1]
 img = None
 font = ImageFont.truetype('KOMIKAX_.ttf', size=text_size)
 
-p_bar = tqdm(range(total_frames+20))
+p_bar = tqdm(range(total_frames))
 p_bar.n = 0
 p_bar.refresh()
 print(images)
 for e, caption_text in enumerate(captions):
     dummy_text_box = textwrap.wrap(" ".join(caption_text), width=caption_width)
-    word_counter += caption_text.count(' ') + caption_text.count('-') + 1
+    word_counter += caption_text.count(' ') + caption_text.count('-') - caption_text.count(' – ') + 1
     if word_counter >= len(aligned['words']):
         break
 
@@ -288,10 +293,15 @@ for e, caption_text in enumerate(captions):
         offset = 0
         while gent_word['case'] != 'success':
             print(gent_word)
-            word_counter += 1
+            if gent_word['case'] != 'not-found-in-audio':
+                word_counter += 1
+            else:
+                offset += 1
+
             if word_counter + offset >= len(aligned['words']):
                 gent_word = {'start': total_frames, "word":"empty"}
                 break
+
             gent_word = aligned['words'][word_counter+offset]
         end = gent_word['start']
     print(caption_text, frame_counter, end, gent_word['word'])
@@ -316,7 +326,7 @@ for e, caption_text in enumerate(captions):
 
         pan = int((frame_counter - pan_start) / (pan_end - pan_start) * total_pan)
 
-        # img.paste(slide_picture, (-pan, 0))
+        img.paste(slide_picture, (-pan, 0))
 
         # Create a drawing context
         draw = ImageDraw.Draw(img)
@@ -350,7 +360,7 @@ for e, caption_text in enumerate(captions):
     if word_counter >= len(aligned['words']):
         break
 
-for i in range(total_frames-frame_counter+20):
+for i in range(total_frames-frame_counter):
     num_str = "{:09d}".format(frame_counter)
     img.save(f'{GENERATE_FOLDER}/caption_{num_str}.png')
     frame_counter += 1
