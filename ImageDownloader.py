@@ -12,9 +12,10 @@ def download(query: str, downloads_folder: str = "downloads", limit: int = 3, de
     if replace is None:
         replace = {}
 
+    q = query
     if query.lower() in replace:
-        query = replace[query.lower()]
-    r = ddg_images(query, safesearch='On', size=None, type_image=None, layout=None, license_image=None, max_results=300)
+        q = replace[query.lower()]
+    r = ddg_images(q, safesearch='On', size=None, type_image=None, layout=None, license_image=None, max_results=300)
 
     success_counter = 0
     i = 0
