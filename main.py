@@ -69,6 +69,9 @@ text_to_speech = TextToSpeechV1(
 
 text_to_speech.set_service_url(env['WATSON_TTS_URL'])
 
+text = text.replace('-', ' ').replace('–', ' ')
+text = re.sub(r"\s+", " ", text)
+
 # Generate speech from text
 with open(f'{GENERATE_FOLDER}/voiceover.mp3', 'wb') as audio_file:
     response = text_to_speech.synthesize(
@@ -257,7 +260,7 @@ p_bar.refresh()
 print([(i[1], i[2]) for i in images])
 for e, caption_text in enumerate(captions):
     dummy_text_box = textwrap.wrap(" ".join(caption_text), width=caption_width)
-    word_counter += caption_text.count(' ') + caption_text.count('-') - caption_text.count(' – ') + 1
+    word_counter += caption_text.count(' ') + 1
     if word_counter >= len(aligned['words']):
         break
 
@@ -285,7 +288,7 @@ for e, caption_text in enumerate(captions):
     for i in range(num_frames):
         if len(images) == 0:
             pass
-        elif len(images) == 1:
+        elif len(images) == 1 and frame_counter >= images[0][1]:
             slide_picture = images[0][0]
             pan_start = frame_counter
             pan_end = total_frames
