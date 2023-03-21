@@ -21,9 +21,9 @@ character_name = "Pac-Man" if character_name == '' else character_name
 
 
 GENERATE_FOLDER = f'generate/{character_name.replace(" ", "")}'
-# if os.path.exists(GENERATE_FOLDER):
-#     shutil.rmtree(GENERATE_FOLDER)
-# os.makedirs(f'{GENERATE_FOLDER}/downloads')
+if os.path.exists(GENERATE_FOLDER):
+    shutil.rmtree(GENERATE_FOLDER)
+os.makedirs(f'{GENERATE_FOLDER}/downloads')
 
 def align(audio, text) -> dict:
     # get output from gentle
@@ -42,66 +42,41 @@ env = dict(dotenv_values(".env"))
 
 
 
-# openai.api_key = env["OPENAI_API_KEY"]
-#
-# prompt = f'You are a short-form video creator who makes videos about the strange history behind the development, writing, and creation of video game characters. Write an energetic script about {character_name}. Speaking the script should take about 45 seconds. Do not include quotation marks. The script should not include a greeting or salutation at the beginning. Do not say "hey there" at the beginning.'
-# message_history = [{"role": "user", "content": prompt}]
-#
-# script_response = openai.ChatCompletion.create(model="gpt-4", messages=message_history, temperature=0.15, max_tokens=300)
+openai.api_key = env["OPENAI_API_KEY"]
 
-script_response = {
-  "choices": [
-    {
-      "finish_reason": "stop",
-      "index": 0,
-      "message": {
-        "content": "Get ready for a blast from the past as we dive into the strange history behind the creation of the iconic video game character, Pac-Man! Developed by Namco in 1980, Pac-Man was inspired by a pizza with a slice missing. Creator Toru Iwatani wanted to create a game that appealed to both genders, and the idea of a character eating its way through a maze was born!\n\nBut did you know Pac-Man was originally called \"Puck-Man\"? The name was changed to avoid potential vandalism of arcade machines, with people changing the \"P\" to an \"F\" \u2013 yikes! And those pesky ghosts? They're named Blinky, Pinky, Inky, and Clyde, each with their own unique personalities and movement patterns.\n\nPac-Man's success led to a massive franchise, including spin-offs, merchandise, and even a TV show! So next time you're munching on power pellets and chasing ghosts, remember the fascinating history behind this legendary character! Waka waka!",
-        "role": "assistant"
-      }
-    }
-  ],
-  "created": 1679279363,
-  "id": "chatcmpl-6vzYxxAUu8x0Tk82ZuVezN34l3gQp",
-  "model": "gpt-4-0314",
-  "object": "chat.completion",
-  "usage": {
-    "completion_tokens": 206,
-    "prompt_tokens": 82,
-    "total_tokens": 288
-  }
-}
+prompt = f'You are a short-form video creator who makes videos about the strange history behind the development, writing, and creation of video game characters. Write an energetic script about {character_name}. Speaking the script should take about 45 seconds. Do not include quotation marks. The script should not include a greeting or salutation at the beginning. Do not say "hey there" at the beginning. Begin the script by saying the character\'s name'
+message_history = [{"role": "user", "content": prompt}]
 
+script_response = openai.ChatCompletion.create(model="gpt-4", messages=message_history, temperature=0.15, max_tokens=300)
 
 text = script_response['choices'][0]['message']['content']
 text = text.replace('\\', '').replace("Narrator:", ' ').replace('"','').replace('\n', ' ')
 import re
 text = re.sub(r"\s+", " ", text)
-print(text)
-
 
 print(script_response)
 print(text)
 
-# import ibm_watson
-# from ibm_watson import TextToSpeechV1
-# from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
-#
-# # Set up the Text to Speech service
-# authenticator = IAMAuthenticator(env['WATSON_API_KEY'])
-# text_to_speech = TextToSpeechV1(
-#     authenticator=authenticator
-# )
-#
-# text_to_speech.set_service_url(env['WATSON_TTS_URL'])
-#
-# # Generate speech from text
-# with open(f'{GENERATE_FOLDER}/voiceover.mp3', 'wb') as audio_file:
-#     response = text_to_speech.synthesize(
-#         text=f'<prosody pitch="-25%" rate="+5%">{text}</prosody>',
-#         accept='audio/mp3',
-#         voice='en-AU_JackExpressive',
-#     ).get_result()
-#     audio_file.write(response.content)
+import ibm_watson
+from ibm_watson import TextToSpeechV1
+from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
+
+# Set up the Text to Speech service
+authenticator = IAMAuthenticator(env['WATSON_API_KEY'])
+text_to_speech = TextToSpeechV1(
+    authenticator=authenticator
+)
+
+text_to_speech.set_service_url(env['WATSON_TTS_URL'])
+
+# Generate speech from text
+with open(f'{GENERATE_FOLDER}/voiceover.mp3', 'wb') as audio_file:
+    response = text_to_speech.synthesize(
+        text=f'<prosody pitch="-25%" rate="+5%">{text}</prosody>',
+        accept='audio/mp3',
+        voice='en-AU_JackExpressive',
+    ).get_result()
+    audio_file.write(response.content)
 
 
 def find_word_index(text, char_index):
@@ -166,14 +141,14 @@ while ic < len(i_nouns):
     ic += 1
 print("NOUNS: ", nouns)
 
-# # Download images from duckduckgo
+# Download images from duckduckgo
+
+from ImageDownloader import download
+
+for n in [character_name] + [a[0] for a in nouns]:
+    print("Searching for:", n)
+    download(f'{n}', limit=3, downloads_folder=f'{GENERATE_FOLDER}/downloads/', replace={"character":character_name})
 #
-# from ImageDownloader import download
-#
-# for n in [character_name] + [a[0] for a in nouns]:
-#     print("Searching for:", n)
-#     download(f'{n}', limit=3, downloads_folder=f'{GENERATE_FOLDER}/downloads/', replace={"character":character_name})
-# #
 
 
 
@@ -229,11 +204,12 @@ def load(n):
     slide_picture = slide_picture.resize((int(box[2] * 1920 / box[3]), 1920))
     images.append((slide_picture, frame_counter, n))
 
-load(character_name)
+# load(character_name)
 
 from pydub import AudioSegment
 audio = AudioSegment.from_mp3(f'{GENERATE_FOLDER}/voiceover.mp3')
 length_in_secs = len(audio) / 1000.0
+print(f'Audio Length: {length_in_secs}')
 total_frames = int(length_in_secs*100 + 0.5)
 
 for e, caption_text in enumerate(captions):
@@ -278,7 +254,7 @@ font = ImageFont.truetype('KOMIKAX_.ttf', size=text_size)
 p_bar = tqdm(range(total_frames))
 p_bar.n = 0
 p_bar.refresh()
-print(images)
+print([(i[1], i[2]) for i in images])
 for e, caption_text in enumerate(captions):
     dummy_text_box = textwrap.wrap(" ".join(caption_text), width=caption_width)
     word_counter += caption_text.count(' ') + caption_text.count('-') - caption_text.count(' – ') + 1
