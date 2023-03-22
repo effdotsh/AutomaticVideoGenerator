@@ -101,48 +101,24 @@ nlp = spacy.load("en_core_web_lg")
 doc = nlp(text)
 # identify named entities and combine multi-word entities
 p_nouns = doc.ents
+
 i_nouns = [token for token in doc if token.pos_ in ["NOUN"]]
 
-pc = 0
-ic = 0
-nouns = []
-while pc < len(p_nouns) and ic < len(i_nouns):
-    ptext = p_nouns[pc].text
-    pstart = find_word_index(text, p_nouns[pc].start_char)
-
-    itext = i_nouns[ic].text
-    istart = find_word_index(text, i_nouns[ic].idx)
-
-    if pstart < istart:
-        while pstart > 0:  # exception for Mr./Mrs./Dr. etc
-            if doc[pstart - 1].pos_ == 'PROPN':
-                ptext = doc[pstart - 1].text + ' ' + ptext
-                pstart -= 1
-            else:
-                break
-        nouns.append((ptext, pstart))
-        pc += 1
-    else:
-        nouns.append((itext, istart))
-        ic += 1
-while pc < len(p_nouns):
-    t = p_nouns[pc].text
-    s = find_word_index(text, p_nouns[pc].start_char)
-    while s > 0:  # exception for Mr./Mrs./Dr. etc
-        if doc[s - 1].pos_ == 'PROPN':
-            t = doc[s - 1].text + ' ' + t
-            s -= 1
+funnyp = []
+for i in p_nouns:
+    pstart = find_word_index(text, i.start_char)
+    ptext = i.text
+    while pstart > 0:  # exception for Mr./Mrs./Dr. etc
+        if doc[pstart].pos_ == 'PROPN':
+            ptext = doc[pstart].text + ' ' + ptext
+            pstart -= 1
         else:
             break
-
-    nouns.append((t, s))
-    pc += 1
-while ic < len(i_nouns):
-    t = i_nouns[ic].text
-    s = find_word_index(text, i_nouns[ic].idx)
-    nouns.append((t, s))
-    ic += 1
+    funnyp.append((ptext, pstart))
+funnyi = [(i.text, find_word_index(text, i.idx)) for i in i_nouns]
+nouns = sorted(funnyi+funnyp, key=lambda x: x[1])
 print("NOUNS: ", nouns)
+
 
 # Download images from duckduckgo
 
