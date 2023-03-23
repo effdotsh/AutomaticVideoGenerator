@@ -177,8 +177,16 @@ def load(n):
     if len(files) == 0:
         print(f'No files in {n}')
         return
-    file = random.choice(files)
-    slide_picture = Image.open(f'{GENERATE_FOLDER}/downloads/{n}/{file}')
+
+    success = False
+    while not success:
+        try:
+            file = random.choice(files)
+            slide_picture = Image.open(f'{GENERATE_FOLDER}/downloads/{n}/{file}')
+            success = True
+        except:
+            pass
+
     box = slide_picture.getbbox()
     slide_picture = slide_picture.resize((int(box[2] * 1920 / box[3]), 1920))
     images.append((slide_picture, frame_counter, n))
