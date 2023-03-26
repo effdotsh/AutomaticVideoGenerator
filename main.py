@@ -1,5 +1,7 @@
 import random
 
+import PIL
+
 random.seed(38724)
 
 import openai
@@ -23,6 +25,9 @@ character_name = "Pac-Man" if character_name == '' else character_name
 GENERATE_FOLDER = f'generate/{character_name.replace(" ", "")}'
 if os.path.exists(GENERATE_FOLDER):
     shutil.rmtree(GENERATE_FOLDER)
+
+time.sleep(1)
+
 os.makedirs(f'{GENERATE_FOLDER}/downloads')
 
 def align(audio, text) -> dict:
@@ -44,7 +49,10 @@ env = dict(dotenv_values(".env"))
 
 openai.api_key = env["OPENAI_API_KEY"]
 
+# prompt = f'You are a short-form video creator who makes videos about the strange history behind the development of video games. Write an energetic script about {character_name}. Speaking the script should take about 45 seconds. Do not include quotation marks. The script should not include a greeting or salutation at the beginning. Do not say "hey there" at the beginning. Begin the script by saying the game\'s name'
+# prompt = f'You are a short-form video creator who makes videos about the strange history behind video game studios. Write an energetic script about {character_name}. Speaking the script should take about 45 seconds. Do not include quotation marks. The script should not include a greeting or salutation at the beginning. Do not say "hey there" at the beginning. Begin the script by saying the studio\'s name'
 prompt = f'You are a short-form video creator who makes videos about the strange history behind the development, writing, and creation of video game characters. Write an energetic script about {character_name}. Speaking the script should take about 45 seconds. Do not include quotation marks. The script should not include a greeting or salutation at the beginning. Do not say "hey there" at the beginning. Begin the script by saying the character\'s name'
+
 message_history = [{"role": "user", "content": prompt}]
 
 script_response = openai.ChatCompletion.create(model="gpt-4", messages=message_history, temperature=0.15, max_tokens=300)
@@ -173,19 +181,27 @@ print("CAPTIONS: ", captions)
 
 images = []
 def load(n):
-    files = os.listdir(f'{GENERATE_FOLDER}/downloads/{n}/')
+    try:
+        files = os.listdir(f'{GENERATE_FOLDER}/downloads/{n}/')
+    except:
+        print(f'Could not find {n}, downloading again')
+        download(f'{n}', limit=3, downloads_folder=f'{GENERATE_FOLDER}/downloads/',
+                 replace={"character": character_name})
+        files = os.listdir(f'{GENERATE_FOLDER}/downloads/{n}/')
+
     if len(files) == 0:
         print(f'No files in {n}')
         return
 
     success = False
+    slide_picture: PIL.Image = None
     while not success:
         try:
             file = random.choice(files)
             slide_picture = Image.open(f'{GENERATE_FOLDER}/downloads/{n}/{file}')
             success = True
         except:
-            pass
+            print("Error could not load", files)
 
     box = slide_picture.getbbox()
     slide_picture = slide_picture.resize((int(box[2] * 1920 / box[3]), 1920))
