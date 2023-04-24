@@ -1,8 +1,7 @@
 import random
+random.seed(38724)
 
 import PIL
-
-random.seed(38724)
 
 import openai
 import os
@@ -49,8 +48,6 @@ env = dict(dotenv_values(".env"))
 
 openai.api_key = env["OPENAI_API_KEY"]
 
-# prompt = f'You are a short-form video creator who makes videos about the strange history behind the development of video games. Write an energetic script about {character_name}. Speaking the script should take about 45 seconds. Do not include quotation marks. The script should not include a greeting or salutation at the beginning. Do not say "hey there" at the beginning. Begin the script by saying the game\'s name'
-# prompt = f'You are a short-form video creator who makes videos about the strange history behind video game studios. Write an energetic script about {character_name}. Speaking the script should take about 45 seconds. Do not include quotation marks. The script should not include a greeting or salutation at the beginning. Do not say "hey there" at the beginning. Begin the script by saying the studio\'s name'
 prompt = f'You are a short-form video creator who makes videos about the strange history behind the development, writing, and creation of video game characters. Write an energetic script about {character_name}. Speaking the script should take about 45 seconds. Do not include quotation marks. The script should not include a greeting or salutation at the beginning. Do not say "hey there" at the beginning. Begin the script by saying the character\'s name'
 
 message_history = [{"role": "user", "content": prompt}]
@@ -112,7 +109,7 @@ p_nouns = doc.ents
 
 i_nouns = [token for token in doc if token.pos_ in ["NOUN"]]
 
-funnyp = []
+proper_nouns = []
 for i in p_nouns:
     pstart = find_word_index(text, i.start_char)
     ptext = i.text
@@ -122,9 +119,9 @@ for i in p_nouns:
             pstart -= 1
         else:
             break
-    funnyp.append((ptext, pstart))
-funnyi = [(i.text, find_word_index(text, i.idx)) for i in i_nouns]
-nouns = sorted(funnyi+funnyp, key=lambda x: x[1])
+    proper_nouns.append((ptext, pstart))
+improper_nouns = [(i.text, find_word_index(text, i.idx)) for i in i_nouns]
+nouns = sorted(improper_nouns + proper_nouns, key=lambda x: x[1])
 print("NOUNS: ", nouns)
 
 
@@ -135,8 +132,6 @@ from ImageDownloader import download
 for n in [character_name] + [a[0] for a in nouns]:
     print("Searching for:", n)
     download(f'{n}', limit=3, downloads_folder=f'{GENERATE_FOLDER}/downloads/', replace={"character":character_name})
-#
-
 
 
 
@@ -181,13 +176,17 @@ print("CAPTIONS: ", captions)
 
 images = []
 def load(n):
+    attempts = 0
     try:
         files = os.listdir(f'{GENERATE_FOLDER}/downloads/{n}/')
     except:
         print(f'Could not find {n}, downloading again')
         download(f'{n}', limit=3, downloads_folder=f'{GENERATE_FOLDER}/downloads/',
                  replace={"character": character_name})
-        files = os.listdir(f'{GENERATE_FOLDER}/downloads/{n}/')
+        try:
+            files = os.listdir(f'{GENERATE_FOLDER}/downloads/{n}/')
+        except:
+            return
 
     if len(files) == 0:
         print(f'No files in {n}')
